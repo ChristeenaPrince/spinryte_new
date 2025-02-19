@@ -12,9 +12,9 @@ import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import {TextField, RadioGroup,
-FormControlLabel,CircularProgress,
-Radio} from '@mui/material';
+import {TextField, RadioGroup,FormControlLabel,CircularProgress,Radio} from '@mui/material';
+import { InputLabel } from "@mui/material";
+
 import MenuItem from '@mui/material/MenuItem';
 import axios from 'axios';
 import { Autocomplete, Box, Menu, Snackbar, Typography,Grid,FormControl,Select } from '@mui/material';
@@ -516,164 +516,100 @@ console.log (productId)
         </Table>
       </TableContainer>
       <Dialog open={openDialog} onClose={handleDialogClose} fullScreen>
-          <DialogTitle>{editItemId ? "Edit Item" : "Add New Item"}</DialogTitle>
-          <DialogContent>
-  <Box component={Paper} sx={{ padding: 4, paddingBottom: 8 }}>
-    <Grid container spacing={2}>
-      <Grid item xs={12}>
-        <Box>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mt={3} mb={3}>
-            <h1 style={{ margin: 0 }}>{editItemId ? "Edit Product" : "Add Product"}</h1>
-            <Button variant="contained" style={{ backgroundColor: "#FF007F" }} onClick={handleDialogClose}>
-              Back
-            </Button>
-          </Box>
-          <hr />
-          <TextField
-            label="Product Name"
-            id="name"
-            fullWidth
-            value={formik.values.name}
-            onChange={formik.handleChange}
-          />
-          <TextField
-            label="Description"
-            id="description"
-            fullWidth
-            value={formik.values.description}
-            onChange={formik.handleChange}
-          />
-           
-          <TextField
-            label="Price"
-            id="price"
-            fullWidth
-            value={formik.values.price}
-            onChange={formik.handleChange}
-          />
-          <Button
-            variant="outlined"
-            onClick={handleStatusMenuOpen}
-            style={{ marginTop: '10px' }}
-          >
-            Status *
-          </Button>
-          <Menu
-            anchorEl={statusMenuAnchor}
-            open={Boolean(statusMenuAnchor)}
-            onClose={() => handleStatusMenuClose(formik.values.status)}
-          >
-            <MenuItem onClick={() => handleStatusMenuClose('Active')}>Active</MenuItem>
-            <MenuItem onClick={() => handleStatusMenuClose('Inactive')}>Inactive</MenuItem>
-          </Menu>
-          <TextField
-            fullWidth
-            value={formik.values.status}
-            onChange={formik.handleChange}
-          />
-
-          {/* Category Dropdown */}
-          <Box mt={1} mb={2}>
-            <h1 style={{ fontWeight: "300" }}>Category:</h1>
-            <FormControl style={{ width: "200px" }}>
-              <Select
-                value={selectedCategory || ""}
-                onChange={(e) => handleCategorySelect(e.target.value)}
-                displayEmpty
-                MenuProps={{ PaperProps: { style: { maxHeight: 200, overflowY: "auto" } } }}
-              >
-                <MenuItem value="" disabled style={{ color: "#9e9e9e" }}>
-                  Select Category
-                </MenuItem>
-                {categories.map((category) => (
-                  <MenuItem key={category.id} value={category.id}>
-                    {category.name}
-                  </MenuItem>
-                ))}
+  <DialogTitle>{editItemId ? "Edit Item" : "Add New Item"}</DialogTitle>
+  <DialogContent>
+    <Box component={Paper} sx={{ padding: 4, paddingBottom: 8 }}>
+      <Grid container spacing={2}>
+        <Grid item xs={12}>
+          <Box>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mt={3} mb={3}>
+              <h1 style={{ margin: 0 }}>{editItemId ? "Edit Product" : "Add Product"}</h1>
+              <Button variant="contained" style={{ backgroundColor: "#FF007F" }} onClick={handleDialogClose}>
+                Back
+              </Button>
+            </Box>
+            <hr />
+            <TextField label="Product Name" id="name" fullWidth {...formik.getFieldProps("name")} />
+            <TextField label="Description" id="description" fullWidth {...formik.getFieldProps("description")} />
+            <TextField label="Price" id="price" fullWidth {...formik.getFieldProps("price")} />
+            
+            {/* Status Dropdown */}
+            <FormControl fullWidth margin="normal">
+              <InputLabel>Status *</InputLabel>
+              <Select value={formik.values.status} onChange={formik.handleChange} name="status">
+                <MenuItem value="Active">Active</MenuItem>
+                <MenuItem value="Inactive">Inactive</MenuItem>
               </Select>
             </FormControl>
-          </Box>
 
-          {/* Dynamic Attributes Form */}
-          <Grid container spacing={3}>
-            {attributes.length > 0 ? (
-              attributes.map((attr) => (
-                <Grid item xs={12} sm={6} key={attr.id}>
-                  <FormControl fullWidth>
-                    <h3>{attr.name}</h3>
-                    {attr.input_type === "Text box" && (
-                      <TextField
-                        placeholder="Enter value"
-                        variant="outlined"
-                        fullWidth
-                        value={formik.values.attributes[attr.id] || ""}
-                        onChange={(e) => handleAttributeChange(attr.id, e.target.value)}
-                      />
-                    )}
-                    {attr.input_type === "Dropdown" && (
-                      <Select
-                      value={formik.values.attributes[attr.id] || ""}
-                        onChange={(e) => handleAttributeChange(attr.id, e.target.value)}
-                      >
-                        {attr.input_values.map((value, index) => (
-                          <MenuItem key={index} value={value}>
-                            {value}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    )}
-                    {attr.input_type === "Radio button" && (
-                      <RadioGroup
-                      value={formik.values.attributes[attr.id] || ""}
-                        onChange={(e) => handleAttributeChange(attr.id, e.target.value)}
-                      >
-                        {attr.input_values.map((value, index) => (
-                          <FormControlLabel key={index} value={value} control={<Radio />} label={value} />
-                        ))}
-                      </RadioGroup>
-                    )}
-                    {attr.input_type === "Date picker" && (
-                      <TextField
-                        type="date"
-                        variant="outlined"
-                        fullWidth
-                        value={formik.values.attributes[attr.id] || ""}
-                        onChange={(e) => handleAttributeChange(attr.id, e.target.value)}
-                      />
-                    )}
-                    {/* Time Picker Input */}
-    {attr.input_type === "Time picker" && (
-      <TextField
-        type="time"
-        variant="outlined"
-        fullWidth
-        value={formik.values.attributes[attr.id] || ""}
-        onChange={(e) => handleAttributeChange(attr.id, e.target.value)}
-      />
-    )}
-                     
-                  </FormControl>
+            {/* Category Dropdown */}
+            <Box mt={1} mb={2}>
+              <h1 style={{ fontWeight: "300" }}>Category:</h1>
+              <FormControl fullWidth>
+                <InputLabel>Select Category</InputLabel>
+                <Select value={selectedCategory || ""} onChange={(e) => handleCategorySelect(e.target.value)}>
+                  {categories.map((category) => (
+                    <MenuItem key={category.id} value={category.id}>
+                      {category.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {/* Dynamic Attributes Form */}
+            <Grid container spacing={3}>
+              {attributes.length > 0 ? (
+                attributes.map((attr) => (
+                  <Grid item xs={12} sm={6} key={attr.id}>
+                    <FormControl fullWidth>
+                      <h3>{attr.name}</h3>
+                      {attr.input_type === "Text box" && (
+                        <TextField placeholder="Enter value" variant="outlined" fullWidth {...formik.getFieldProps(`attributes.${attr.id}`)} />
+                      )}
+                      {attr.input_type === "Dropdown" && (
+                        <Select {...formik.getFieldProps(`attributes.${attr.id}`)}>
+                          {attr.input_values.map((value, index) => (
+                            <MenuItem key={index} value={value}>{value}</MenuItem>
+                          ))}
+                        </Select>
+                      )}
+                      {attr.input_type === "Radio button" && (
+                        <RadioGroup {...formik.getFieldProps(`attributes.${attr.id}`)}>
+                          {attr.input_values.map((value, index) => (
+                            <FormControlLabel key={index} value={value} control={<Radio />} label={value} />
+                          ))}
+                        </RadioGroup>
+                      )}
+                      {attr.input_type === "Date picker" && (
+                        <TextField type="date" variant="outlined" fullWidth {...formik.getFieldProps(`attributes.${attr.id}`)} />
+                      )}
+                      {attr.input_type === "Time picker" && (
+                        <TextField type="time" variant="outlined" fullWidth {...formik.getFieldProps(`attributes.${attr.id}`)} />
+                      )}
+                    </FormControl>
+                  </Grid>
+                ))
+              ) : (
+                <Grid item xs={12}>
+                  <p>No attributes available</p>
                 </Grid>
-              ))
-            ) : (
-              <Grid item xs={12}>
-                <p>No attributes available</p>
-              </Grid>
-            )}
-          </Grid>
-        </Box>
+              )}
+            </Grid>
+          </Box>
+        </Grid>
       </Grid>
-    </Grid>
-  </Box>
-</DialogContent>
+    </Box>
+  </DialogContent>
+  
+  {/* Buttons */}
+  <DialogActions>
+    <Button variant="contained" onClick={formik.handleSubmit} color="primary">
+      Save
+    </Button>
+  </DialogActions>
 
 
-          {/* Buttons */}
-          <DialogActions>
-          <Button variant="contained" onClick={formik.handleSubmit} color="primary">
-            Save
-          </Button>
-          </DialogActions>
         </Dialog>
       <div style={{ margin: '20px', marginLeft: 'auto', marginRight: 'auto' }}>
         <Dialog
