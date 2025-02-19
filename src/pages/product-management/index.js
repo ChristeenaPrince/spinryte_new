@@ -14,7 +14,6 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import {TextField, RadioGroup,FormControlLabel,CircularProgress,Radio} from '@mui/material';
 import { InputLabel } from "@mui/material";
-
 import MenuItem from '@mui/material/MenuItem';
 import axios from 'axios';
 import { Autocomplete, Box, Menu, Snackbar, Typography,Grid,FormControl,Select } from '@mui/material';
@@ -134,64 +133,64 @@ const ProductManagement = () =>{
       }
     }
   };
+ 
+
   const formik = useFormik({
     initialValues: {
-     
+      id: '',
       name: '',
       description: '',
       price: '',
-      created_at: '',
       status: '',
       category: '',
       productImage: [],
-      attributes: {},
+      attributes: {}, // Store attribute values as an object { id: value }
     },
-  
+
     onSubmit: async (values) => {
+      console.log('Submitting form values:', values); // Debugging
+
       const productData = {
-       // Ensure productId is correctly set
+        id: editItemId, // Ensure product ID is passed
         name: values.name,
         description: values.description,
         price: values.price,
-        category: selectedCategory,
-        status: values.status === "Active" ? 1 : 2, // Ensure status is correctly formatted
-        attributes: attributes.map((attr) => ({
-          atr_id: attr.id, // Ensure correct attribute ID
-          atr_value: values.attributes[attr.id] || "", // Get the value from formik state
+        category: values.category,
+        status: values.status === "Active" ? "1" : "2",
+        attributes: Object.keys(values.attributes).map((atr_id) => ({
+          id: Number(atr_id), // Ensure the correct attribute ID
+          input_values: values.attributes[atr_id] || "", // Ensure correct input value
         })),
       };
 
+      console.log('Final product data being sent:', productData); // Debugging
+      console.log('Edit item ID:', editItemId); // Ensure it's correct
+
       try {
-        let response;
-  
         if (editItemId) {
-          // Updating existing product
-          response = await axios.post("https://spinryte.in/draw/api/Product/update_product", productData);
-          showMessage('✅ Product updated successfully');
+          const response = await axios.post(
+            `https://spinryte.in/draw/api/Product/update_product/${editItemId}`,productData);
+          console.log('Update response:', response.data);
+          showMessage('Product Updated successfully');
         } else {
-          // Adding a new product
-          response = await axios.post("https://spinryte.in/draw/api/Product/create_product", productData);
-          showMessage('✅ Product added successfully');
-  
-          // Get new product ID from API response
+          const response = await axios.post(
+            'https://spinryte.in/draw/api/Product/create_product',productData);
+          console.log('Create response:', response.data);
+          showMessage('Product Added successfully');
+
           const newProductId = response.data.output?.product_id;
-  
           if (newProductId) {
             associateImagesWithProduct(newProductId);
+            setOpenAddImageDialog(true);
           }
         }
-  
-        // Close dialogs and refresh data
+
         handleDialogClose();
         fetchProducts();
         setOpenDialog(false);
-  
-        if (!editItemId) {
-          setOpenAddImageDialog(true);
-        }
       } catch (error) {
-        console.error("❌ Error adding/updating product:", error);
-        showMessage('❌ Product Add/Update Failed');
+        console.error('Error adding/updating product:', error.response?.data || error.message);
+        showMessage('Product Add/Update Failed');
       }
     },
   });
@@ -350,39 +349,50 @@ console.log (productId)
       const productDetails = response.data;
 
       if (productDetails && productDetails.dataList) {
-        const { id, name, description, price, created_at, status, category_id, product_images } = productDetails.dataList;
+        const { id, name, description, price, created_at, status, category_id, attributes, product_images } = productDetails.dataList;
 
-        // Set formik values with the retrieved product details
+        // Fetch attributes based on the selected category
+        const attrResponse = await axios.get(`https://spinryte.in/draw/api/Attributes/FetchAttribute/${category_id}`);
+        const fetchedAttributes = attrResponse.data.attributes || [];
+
+        // Map attributes into a key-value pair object for formik
+        const attributeValues = {};
+        fetchedAttributes.forEach(attr => {
+          // Find matching attribute from product details
+          const productAttr = attributes.find(pa => pa.id === attr.id);
+
+          // Use product's saved value if exists, otherwise use the first value from API
+          attributeValues[attr.id] = productAttr && productAttr.input_values
+            ? productAttr.input_values
+            : attr.input_values.length > 0
+            ? attr.input_values[0]
+            : "";
+        });
+
+        // Set formik values
         formik.setValues({
-          id: id,
-          name: name,
-          description: description,
-          price: price,
+          id,
+          name,
+          description,
+          price,
           created_at: created_at || '',
           status: status === 'Active' ? 1 : 2,
           category: category_id,
           productImage: product_images.map(image => ({ id: image.id, url: image.image })),
-          
+          attributes: attributeValues, // Set attribute values dynamically
         });
 
         // Open the edit dialog
         setEditItemId(id);
         setOpenDialog(true);
-        setOpenAddImageDialog(true);
-
-        // Display productId and selected category name
-        setProductId(productId);
-        setSelectedCategoryName(category_id);
-
-        // Print images with delete code
-        console.log('Images:', product_images.map(image => ({ id: image.id, url: image.image })));
+        setSelectedCategory(category_id);
+        setAttributes(fetchedAttributes);
       } else {
-        console.error('Error fetching product details: Product details not found');
-        showMessage('Error fetching product details: Product details not found');
+        showMessage("Error fetching product details: Product details not found");
       }
     } catch (error) {
-      console.error('Error fetching product details:', error);
-      showMessage('Error fetching product details');
+      console.error("Error fetching product details:", error);
+      showMessage("Error fetching product details");
     }
   };
 
@@ -542,8 +552,8 @@ console.log (productId)
               </Select>
             </FormControl>
 
-            {/* Category Dropdown */}
-            <Box mt={1} mb={2}>
+           {/* Category Dropdown */}
+           <Box mt={1} mb={2}>
               <h1 style={{ fontWeight: "300" }}>Category:</h1>
               <FormControl fullWidth>
                 <InputLabel>Select Category</InputLabel>
@@ -556,7 +566,7 @@ console.log (productId)
                 </Select>
               </FormControl>
             </Box>
-
+            
             {/* Dynamic Attributes Form */}
             <Grid container spacing={3}>
               {attributes.length > 0 ? (
