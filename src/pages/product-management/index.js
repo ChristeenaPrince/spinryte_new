@@ -673,8 +673,10 @@ console.log (productId)
   <Button onClick={handleUploadClick} color="primary">
     Upload Images
   </Button>
+  <Button onClick={()=> removeImage(formik.values.productImage,image.id,index)}color="primary">
+  Remove Image </Button>
 </form>
-            <Button onClick={handleAddImage}>Add Image</Button>
+            
           </DialogContent>
           <DialogActions>
           </DialogActions>
