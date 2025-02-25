@@ -12,14 +12,16 @@ import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import {TextField, RadioGroup,FormControlLabel,CircularProgress,Radio} from '@mui/material';
-import { InputLabel } from "@mui/material";
+import {TextField, RadioGroup,FormControlLabel,Radio} from '@mui/material';
 import MenuItem from '@mui/material/MenuItem';
 import axios from 'axios';
 import { Autocomplete, Box, Menu, Snackbar, Typography,Grid,FormControl,Select } from '@mui/material';
 import MuiAlert from '@mui/material/Alert';
+import { InputLabel } from "@mui/material";
 import { useFormik } from 'formik';
 import IconButton from '@mui/material/IconButton';
+
+
 
 const ProductManagement = () =>{
   const [rows, setRows] = useState([]);
@@ -29,10 +31,12 @@ const ProductManagement = () =>{
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedCategoryName, setSelectedCategoryName] = useState('');
   const [inputCategory, setInputCategory] = useState('');
+  const [statusNumericValue, setStatusNumericValue] = useState(null)
+  const [existingImages, setExistingImages] = useState([]);
+  const [editingProductId, setEditingProductId] = useState(null);
+  const [openEditImageDialog, setOpenEditImageDialog] = useState(false);
     const [attributes, setAttributes] = useState([]);
-    const [openEditImageDialog, setOpenEditImageDialog] = useState(false);
-    const [existingImages, setExistingImages] = useState([]);
-    const [loading, setLoading] = React.useState(false);
+    const [newProductId, setNewProductId] = useState(null); // Store product ID
 
   useEffect(() => {
     fetchProducts();
@@ -40,7 +44,6 @@ const ProductManagement = () =>{
      fetchAttribute();
   }, []);
 
- 
   const fetchProducts = () => {
     fetch('https://spinryte.in/draw/api/Product/get_productList')
       .then(response => response.json())
@@ -73,15 +76,16 @@ const ProductManagement = () =>{
   const fetchAttribute = async (categoryId) => {
     if (!categoryId) {
       console.error("Error: categoryId is missing or invalid", categoryId);
+
       return;
     }
-  
+
     try {
       console.log("Fetching attributes for categoryId:", categoryId);
-      const response = await axios.get(`https://spinryte.in/draw/api/Attributes/FetchAttribute/${categoryId}`)
+      const response = await axios.get(`https://spinryte.in/draw/api/Attributes/FetchAttribute/${categoryId}`);
 
       console.log("API Response:", response.data);
-  
+
       if (response.data?.status && response.data?.attributes) {
         setAttributes(response.data.attributes);
       } else {
@@ -123,6 +127,7 @@ const ProductManagement = () =>{
       try {
         const response = await axios.post(`https://spinryte.in/draw/api/Product/product_delete`, { id: editingItemId });
 
+
         if (response) {
           setRows((prevRows) => prevRows.filter((row) => row.id !== editingItemId));
           setEditingItemId(null);
@@ -137,7 +142,6 @@ const ProductManagement = () =>{
       }
     }
   };
- 
 
   const formik = useFormik({
     initialValues: {
@@ -148,57 +152,74 @@ const ProductManagement = () =>{
       status: '',
       category: '',
       productImage: [],
-      attributes: {}, // Store attribute values as an object { id: value }
+      attributes: {},
     },
 
     onSubmit: async (values) => {
-      console.log('Submitting form values:', values); // Debugging
+      console.log("Submitting form values:", values);
+
+      const formattedAttributes = Object.keys(values.attributes).map((atr_id) => ({
+        id: Number(atr_id),
+        input_values: values.attributes[atr_id] || "",
+      }));
 
       const productData = {
-        id: editItemId, // Ensure product ID is passed
+        id: editItemId || "",
         name: values.name,
         description: values.description,
         price: values.price,
         category: selectedCategory || values.category,
         status: values.status === "Active" ? "1" : "2",
-        attributes: Object.keys(values.attributes).map((atr_id) => ({
-          id: Number(atr_id), // Ensure the correct attribute ID
-          input_values: values.attributes[atr_id] || "", // Ensure correct input value
-        })),
+        attributes: formattedAttributes,
       };
 
-      console.log('Final product data being sent:', productData); // Debugging
-      console.log('Edit item ID:', editItemId); // Ensure it's correct
+      console.log("Final product data being sent:", productData);
 
       try {
+        let response;
         if (editItemId) {
-          const response = await axios.post(
-            `https://spinryte.in/draw/api/Product/update_product/${editItemId}`,productData);
-          console.log('Update response:', response.data);
-          showMessage('Product Updated successfully');
+          response = await axios.post(
+           ` https://spinryte.in/draw/api/Product/update_product/${editItemId},
+            productData`
+          );
+          console.log("Update response:", response.data);
+          showMessage("Product Updated successfully");
         } else {
-          const response = await axios.post(
-            'https://spinryte.in/draw/api/Product/create_product',productData);
-          console.log('Create response:', response.data);
-          showMessage('Product Added successfully');
+          response = await axios.post(
+            "https://spinryte.in/draw/api/Product/create_product",
+            productData
+          );
+          console.log("Create response:", response.data);
+          showMessage("Product Added successfully");
 
-          const newProductId = response.data.output?.product_id;
-          if (newProductId) {
-            associateImagesWithProduct(newProductId);
+          const createdProductId = response.data.output?.product_id;
+          if (createdProductId) {
+            setNewProductId(createdProductId);
+            formik.setFieldValue("id", createdProductId);
             setOpenAddImageDialog(true);
           }
         }
-       handleDialogClose();
-       fetchProducts();
-       setOpenAddImageDialog(true);
-       setOpenDialog(false);
+
+        handleDialogClose();
+        fetchProducts();
       } catch (error) {
-        console.error('Error adding/updating product:', error.response?.data || error.message);
-        showMessage('Product Add/Update Failed');
+        console.error("Error adding/updating product:", error.response?.data || error.message);
+        showMessage("Product Add/Update Failed");
       }
     },
   });
-  
+
+
+  const handleAttributeChange = (attributeId, value) => {
+    formik.setValues((prevValues) => ({
+      ...prevValues,
+      attributes: {
+        ...prevValues.attributes,
+        [attributeId]: value,
+      },
+    }));
+  };
+
   const handleDialogClose = () => {
     setEditItemId(null);
     setOpenDialog(false);
@@ -229,74 +250,73 @@ const ProductManagement = () =>{
     }
   };
 
+  const handleUploadClick = async () => {
+    const productId = formik.values.id || newProductId;
+    console.log("Uploading images for Product ID:", productId);
 
-  const handleUploadClick = () => {
-    setTimeout(() => {
-        console.log("Formik values before upload (after delay):", formik.values);
-        if (!formik.values.id) {
-            showMessage("Product ID is missing");
-            return;
+    if (!productId) {
+      showMessage("Error: Product ID is missing. Cannot upload images.");
+
+      return;
+    }
+
+    const imagesToUpload = (formik.values.productImage || []).filter(image => image instanceof File);
+    if (imagesToUpload.length === 0) {
+      showMessage("No valid images selected for upload.");
+
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      imagesToUpload.forEach((image, index) => {
+        formData.append(`productImage[${index}]`, image);
+      });
+
+      formData.append("product_id", productId);
+
+      const response = await axios.post(
+        "https://spinryte.in/draw/api/Product/image_upload",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" }
         }
+      );
 
-        const imagesToUpload = formik.values.productImage.filter(image => image instanceof File);
+      console.log("Image Upload Response:", response.data);
 
-        if (imagesToUpload.length > 0) {
-            const formData = new FormData();
-            imagesToUpload.forEach((productImage, index) => {
-                formData.append(`productImage[${index}]`, productImage);
-            });
-
-            formData.append("product_id", formik.values.id);
-
-            axios.post("https://spinryte.in/draw/api/Product/image_upload", formData)
-                .then(response => {
-                    showMessage("Images uploaded successfully");
-                    setOpenAddImageDialog(false);
-                    fetchProducts();
-                })
-                .catch(error => {
-                    console.error("Error uploading images:", error.response?.data || error.message);
-                    showMessage("Error uploading images");
-                });
-        } else {
-            showMessage("No images selected for upload");
-        }
-    }, 500); // Delay 500ms
-};
-
-useEffect(() => {
-  console.log("Formik values updated:", formik.values);
-}, [formik.values]);
+      if (response.data.status) {
+        showMessage("Images uploaded successfully!");
+        setOpenAddImageDialog(false);
+        fetchProducts();
+      } else {
+        showMessage("Image upload failed. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error uploading images:", error);
+      showMessage("Error uploading images. Please check the console for details.");
+    }
+  };
 
 
   const handleFileUpload = (event) => {
     const files = Array.from(event.target.files);
-    const existingImages = formik.values.productImage || [];
-  
-    if (existingImages.length + files.length > 5) {
-      showMessage("You can upload a maximum of 5 images.");
-      return;
-    }
-  
-    formik.setFieldValue("productImage", [...existingImages, ...files]);
+    if (files.length === 0) return;
+
+    console.log("Selected Files:", files);
+
+
+    formik.setValues((prevValues) => ({
+      ...prevValues,
+      productImage: [...prevValues.productImage, ...files],
+    }));
   };
-  
+
 
   const handleImageChange = (imageUrl, index) => {
     console.log(imageUrl)
     console.log(index)
   };
-
-  const handleAttributeChange = (attributeId, value) => {
-    formik.setValues((prevValues) => ({
-      ...prevValues,
-      attributes: {
-        ...prevValues.attributes,
-        [attributeId]: value, // Store value using attribute ID as key
-      },
-    }));
-  };
-  
 
   const associateImagesWithProduct = (productId) => {
     setProductId(productId);
@@ -307,7 +327,7 @@ useEffect(() => {
         formData.append('images', productImage);
       });
       formData.append('product_id', productId);
-      axios.post(`https://spinryte.in/draw/api/Product/image_upload`, formData)
+      axios.post(`https://spinryte.in/draw/api/Product/image_upload, formData`)
         .then(response => {
           showMessage('Images Uploaded ');
           setOpenAddImageDialog(false)
@@ -320,16 +340,17 @@ useEffect(() => {
   };
 console.log (productId)
 
-  const handleImageSelection = (index) => {
-    const updatedImages = formik.values.productImage.map((image, i) => ({
-      ...image,
-      selected: i === index,
-    }));
-    formik.setValues((prevValues) => ({
-      ...prevValues,
-      productImage: updatedImages,
-    }));
-  };
+const handleImageSelection = (index) => {
+  const updatedImages = formik.values.productImage.map((image, i) => ({
+    ...image,
+    selected: i === index,
+  }));
+  formik.setValues((prevValues) => ({
+    ...prevValues,
+    productImage: updatedImages,
+  }));
+};
+
 
   const handleCategorySearch = (inputValue) => {
     axios.get(`https://spinryte.in/draw/api/Category/categoryList?name=${inputValue}`)
@@ -345,81 +366,110 @@ console.log (productId)
       });
   };
 
-  const handleCategorySelect = (selectedCategoryId, selectedCategoryName) => {
-    setSelectedCategory(selectedCategoryId);
-    setSelectedCategoryName(selectedCategoryName);
 
-    formik.setFieldValue('category_id', selectedCategoryId);
+
+  const handleCategorySelect = async (categoryId) => {
+    setSelectedCategory(categoryId);
+    formik.setFieldValue("category", categoryId); // Ensure category is updated in Formik
+
+    try {
+      const response = await axios.get(`https://spinryte.in/draw/api/Attributes/FetchAttribute/${categoryId}`);
+
+      if (response.data && response.data.status) {
+        const fetchedAttributes = response.data.attributes || [];
+
+        // Ensure input_values are formatted correctly
+        const processedAttributes = fetchedAttributes.map(attr => ({
+          ...attr,
+          input_values: typeof attr.input_values === "string"
+            ? attr.input_values.split(",")
+            : Array.isArray(attr.input_values)
+            ? attr.input_values
+            : [],
+        }));
+
+        // Initialize formik attributes state
+        const initialAttributes = {};
+        processedAttributes.forEach(attr => {
+          initialAttributes[attr.id] = ""; // Default empty value
+        });
+
+        setAttributes(processedAttributes);
+        await formik.setFieldValue("attributes", initialAttributes); // Ensure Formik updates correctly
+      } else {
+        console.error("No attributes found for this category");
+        setAttributes([]);
+        await formik.setFieldValue("attributes", {}); // Reset attributes
+      }
+    } catch (error) {
+      console.error("Error fetching attributes:", error.response?.data || error.message);
+      setAttributes([]);
+      await formik.setFieldValue("attributes", {}); // Reset attributes on error
+    }
   };
 
-  const handleStatusMenuClose = (status) => {
+  const handleStatusMenuClose = (value) => {
+    formik.setFieldValue("status", value);
     setStatusMenuAnchor(null);
-  
-    formik.setFieldValue('status', status);
   };
 
-        const handleEditClick = async (productId) => {
-          try {
-            const response = await axios.get(`https://spinryte.in/draw/api/Product/single_view/${productId}`);
-            const productDetails = response.data;
-      
-            if (productDetails && productDetails.dataList) {
-              const {
-                id, name, description, price, created_at, status,
-                category_id, attributes, product_images
-              } = productDetails.dataList;
-      
-              // Fetch attributes based on the selected category
-              const attrResponse = await axios.get(`https://spinryte.in/draw/api/Attributes/FetchAttribute/${category_id}`);
-              const fetchedAttributes = attrResponse.data.attributes || [];
-      
-              // Map attributes
-              const attributeValues = {};
-              fetchedAttributes.forEach(attr => {
-                const productAttr = attributes.find(pa => pa.id === attr.id);
-                attributeValues[attr.id] = productAttr?.input_values || attr.input_values[0] || "";
-              });
-      
-              // Set form values including images
-              formik.setValues({
-                id,
-                name,
-                description,
-                price,
-                created_at: created_at || '',
-                status: status === 'Active' ? 1 : 2,
-                category: category_id,
-                productImage: product_images.map(image => ({ id: image.id, url: image.image })), // Set images
-                attributes: attributeValues,
-              });
-      
-              // Store product images separately for the edit image UI
-              setExistingImages(product_images.map(image => ({ id: image.id, url: image.image })));
-      
-              // Open Image Edit Dialog first
-              setEditItemId(id);
-              setOpenEditImageDialog(true); // Open Edit Image Section First
-              setSelectedCategory(category_id);
-              setAttributes(fetchedAttributes);
-              setOpenDialog(true);
-            } else {
-              showMessage("Error fetching product details: Product details not found");
-            }
-          } catch (error) {
-            console.error("Error fetching product details:", error);
-            showMessage("Error fetching product details");
-          }
-        };
+  const handleEditClick = async (productId) => {
+    try {
+      const response = await axios.get(`https://spinryte.in/draw/api/Product/single_view/${productId}`);
+      const productDetails = response.data;
+
+      if (productDetails && productDetails.dataList) {
+        const {
+          id, name, description, price, created_at, status,
+          category_id, attributes, product_images
+        } = productDetails.dataList;
+
+        // Fetch attributes based on the selected category
+        const attrResponse = await axios.get(`https://spinryte.in/draw/api/Attributes/FetchAttribute/${category_id}`);
+        const fetchedAttributes = attrResponse.data.attributes || [];
+
+        // Map attributes
+        const attributeValues = {};
+        fetchedAttributes.forEach(attr => {
+          const productAttr = attributes.find(pa => pa.id === attr.id);
+          attributeValues[attr.id] = productAttr?.input_values || attr.input_values[0] || "";
+        });
+
+        // Set form values including images
+        formik.setValues({
+          id,
+          name,
+          description,
+          price,
+          created_at: created_at || '',
+          status: status === 'Active' ? 1 : 2,
+          category: category_id,
+          productImage: product_images.map(image => ({ id: image.id, url: image.image })), // Set images
+          attributes: attributeValues,
+        });
+
+        setExistingImages(product_images.map(image => ({ id: image.id, url: image.image })));
+
+        // Open Image Edit Dialog first
+        setEditItemId(id);
+        setOpenEditImageDialog(true); // Open Edit Image Section First
+        setSelectedCategory(category_id);
+        setOpenDialog(true);
+        setAttributes(fetchedAttributes);
+      } else {
+        showMessage("Error fetching product details: Product details not found");
+      }
+    } catch (error) {
+      console.error("Error fetching product details:", error);
+      showMessage("Error fetching product details");
+    }
+  };
+
 
   const placeholderImage = 'https://dummyimage.com/600x400/000/fff';
 
   const removeImage = async (imageId, index) => {
-    
     if (!imageId) {
-      const confirmed = window.confirm("Are you sure you want to remove this image?");
-      if (!confirmed) return;
-    
-      // Proceed with deletion...
       // If no imageId, it's a new (unsaved) image, just remove it from UI
       formik.setFieldValue(
         "productImage",
@@ -431,6 +481,7 @@ console.log (productId)
 
     try {
       console.log("Removing image ID:", imageId); // Debugging
+
       const response = await axios.post("https://spinryte.in/draw/api/Product/remove_image", {
         id: imageId, // Ensure correct request format
       });
@@ -438,11 +489,6 @@ console.log (productId)
       console.log("API Response:", response.data);
 
       if (response.data.status) {
-        setOpenEditImageDialog(false)
-        
-
- window.location.reload(); 
-    
         showMessage("Image removed successfully");
         formik.setFieldValue(
           "productImage",
@@ -456,12 +502,12 @@ console.log (productId)
       showMessage("Error removing image. Please try again.");
     }
   };
- 
+
   const handleSearchChange = (event) => {
     const { value } = event.target;
     setSearchQuery(value);
 
-    // Fetch products based on the search query
+
     axios.get(`https://spinryte.in/draw/api/Product/get_productList?name=${value}`)
       .then(response => {
         if (response.data && response.data.status && response.data.dataList) {
@@ -476,6 +522,8 @@ console.log (productId)
         console.error('Error fetching products:', error);
       });
   };
+
+ 
 
   return (
     <div style={{ margin: '20px', marginLeft: 'auto', marginRight: 'auto' }}>
@@ -565,11 +613,13 @@ console.log (productId)
         </Table>
       </TableContainer>
       <Dialog open={openDialog} onClose={handleDialogClose} fullScreen>
-  <DialogTitle>{editItemId ? "Edit Item" : "Add New Item"}</DialogTitle>
+     <DialogTitle>{editItemId ? "Edit Item" : "Add New Item"}</DialogTitle>
   <DialogContent>
     <Box component={Paper} sx={{ padding: 4, paddingBottom: 8 }}>
       <Grid container spacing={2}>
         <Grid item xs={12}>
+          <Box></Box>
+      
           <Box>
             <Box display="flex" justifyContent="space-between" alignItems="center" mt={3} mb={3}>
               <h1 style={{ margin: 0 }}>{editItemId ? "Edit Product" : "Add Product"}</h1>
@@ -676,18 +726,18 @@ console.log (productId)
   </Button>
 </DialogActions>
  </Dialog>
-
-{/*Add image*/}
+  
 
 <div style={{ margin: '20px', marginLeft: 'auto', marginRight: 'auto' }}>
-        <Dialog open={openAddImageDialog} onClose={() => setOpenAddImageDialog(false)} maxWidth="sm">
+<Dialog open={openAddImageDialog} onClose={() => setOpenAddImageDialog(false)} maxWidth="sm">
   <DialogTitle>Add Images</DialogTitle>
   <DialogContent>
     <div>
+      <p>Product ID: {newProductId || "Not Available"}</p> {/* Debugging: Show ID */}
       {(formik.values.productImage || []).map((image, index) => (
         <div key={index} style={{ marginBottom: '10px' }}>
           <img
-            src={image instanceof File ? URL.createObjectURL(image) : image.url || image}
+            src={image instanceof File ? URL.createObjectURL(image) : image.url || image.id}
             alt={`Product Image ${index + 1}`}
             style={{ width: "100px", height: "auto" }}
           />
@@ -712,10 +762,8 @@ console.log (productId)
     </div>
   </DialogContent>
 </Dialog>
+
       </div>
-
-{/*Edit image */}
-
       <div style={{ margin: '20px', marginLeft: 'auto', marginRight: 'auto' }}>
       <Dialog open={openEditImageDialog} onClose={() => setOpenEditImageDialog(false)} maxWidth="sm">
   <DialogTitle>Edit Images</DialogTitle>
@@ -736,8 +784,8 @@ console.log (productId)
     </div>
   </DialogContent>
 </Dialog>
+
       </div>
-{/*Delete item */}
       <Dialog
         open={openDeleteDialog}
         onClose={() => setOpenDeleteDialog(false)}
@@ -762,7 +810,7 @@ console.log (productId)
       </Snackbar>
     </div>
   );
-
 };
 
 export default ProductManagement;
+
