@@ -727,6 +727,7 @@ const handleImageSelection = (index) => {
 </DialogActions>
  </Dialog>
   
+{/*Add image*/}
 
 <div style={{ margin: '20px', marginLeft: 'auto', marginRight: 'auto' }}>
 <Dialog open={openAddImageDialog} onClose={() => setOpenAddImageDialog(false)} maxWidth="sm">
@@ -762,8 +763,10 @@ const handleImageSelection = (index) => {
     </div>
   </DialogContent>
 </Dialog>
-
       </div>
+      
+      {/*Edit image*/}
+
       <div style={{ margin: '20px', marginLeft: 'auto', marginRight: 'auto' }}>
       <Dialog open={openEditImageDialog} onClose={() => setOpenEditImageDialog(false)} maxWidth="sm">
   <DialogTitle>Edit Images</DialogTitle>
