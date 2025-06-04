@@ -350,275 +350,140 @@ const handleEditSave = async () => {
       <Box display="flex" justifyContent="space-between" padding={2} bgcolor="#f5f5f5" boxShadow={1}>
         <Typography variant="h4">{categoryName || "Unknown Category"}</Typography>
       </Box>
+{/* Add Attribute Form */}
+<Box padding={2} bgcolor="#f5f5f5" boxShadow={1} marginBottom={3}>
+  <Typography variant="h6" marginBottom={2}>
+    Add Attributes
+  </Typography>
+  <TextField
+    label="Attribute Name"
+    name="name"
+    value={newItem.name}
+    onChange={handleAddItemChange}
+    fullWidth
+    margin="normal"
+  />
+  <FormControl fullWidth margin="normal">
+    <InputLabel>Input Type</InputLabel>
+    <Select
+      name="input_type"
+      value={newItem.input_type}
+      onChange={handleAddItemChange}
+    >
+      <MenuItem value="Dropdown">Dropdown</MenuItem>
+      <MenuItem value="Radio button">Radio button</MenuItem>
+      <MenuItem value="Text box">Text box</MenuItem>
+      <MenuItem value="Date picker">Date picker</MenuItem>
+      <MenuItem value="Time picker">Time picker</MenuItem>
+    </Select>
+  </FormControl>
+  <TextField
+    label="Values"
+    name="input_values"
+    value={newItem.input_values}
+    onChange={handleAddItemChange}
+    fullWidth
+    margin="normal"
+    placeholder="Comma-separated values for dropdown (if applicable)"
+  />
+  <FormControl fullWidth margin="normal">
+    <InputLabel>Status</InputLabel>
+    <Select
+      name="status"
+      value={newItem.status}
+      onChange={handleAddItemChange}
+    >
+      <MenuItem value="1">Active</MenuItem>
+      <MenuItem value="2">Inactive</MenuItem>
+    </Select>
+  </FormControl>
+  <Box display="flex" justifyContent="flex-end" marginTop={2}>
+    <Button
+      color="primary"
+      variant="contained"
+      onClick={editingAttribute ? handleEditSave : handleAddItemSubmit}  
+    >
+      {editingAttribute ? "Save" : "Add"} {/* Display dynamic text */}
+    </Button>
+  </Box>
+</Box>
 
-      {/* Add Attribute Form */}
-      <Box padding={2} bgcolor="#f5f5f5" boxShadow={1} marginBottom={3}>
-        <Typography variant="h6" marginBottom={2}>
-          Add Attributes
-        </Typography>
-        <TextField
-          label="Attribute Name"
-          name="name"
-          value={newItem.name}
-          onChange={handleAddItemChange}
-          fullWidth
-          margin="normal"
-        />
-        <FormControl fullWidth margin="normal">
-          <InputLabel>Input Type</InputLabel>
-          <Select
-            name="input_type"
-            value={newItem.input_type}
-            onChange={handleAddItemChange}
-          >
-            <MenuItem value="Dropdown">Dropdown</MenuItem>
-            <MenuItem value="Radio button">Radio button</MenuItem>
-            <MenuItem value="Text box">Text box</MenuItem>
-            <MenuItem value="Date picker">Date picker</MenuItem>
-            <MenuItem value="Time picker">Time picker</MenuItem>
-          </Select>
-        </FormControl>
-        <TextField
-          label="Values"
-          name="input_values"
-          value={newItem.input_values}
-          onChange={handleAddItemChange}
-          fullWidth
-          margin="normal"
-          placeholder="Comma-separated values for dropdown (if applicable)"
-        />
-        <FormControl fullWidth margin="normal">
-          <InputLabel>Status</InputLabel>
-          <Select
-            name="status"
-            value={newItem.status}
-            onChange={handleAddItemChange}
-          >
-            <MenuItem value="1">Active</MenuItem>
-            <MenuItem value="2">Inactive</MenuItem>
-          </Select>
-        </FormControl>
-        <Box display="flex" justifyContent="flex-end" marginTop={2}>
-  <Button
-    color="primary"
-    variant="contained"
-    onClick={editingAttribute ? handleEditSave : handleAddItemSubmit}  
-  >
-    {editingAttribute ? "Save" : "Add"} {/* Display dynamic text */}
+{/* Main View Table */}
+<TableContainer component={Paper} style={{ marginTop: 20 }}>
+  <Table>
+    <TableHead>
+      <TableRow>
+        <TableCell><strong>SL NO</strong></TableCell>
+        <TableCell align="left"><strong>ATTRIBUTE NAME</strong></TableCell>
+        <TableCell align="left"><strong>INPUT TYPE</strong></TableCell>
+        <TableCell align="left"><strong>VALUES</strong></TableCell>
+        <TableCell align="left"><strong>STATUS</strong></TableCell>
+        <TableCell align="left"><strong>Action</strong></TableCell>
+      </TableRow>
+    </TableHead>
+    <TableBody>
+      {viewData.map((item, index) => (
+        <TableRow key={index}>
+          <TableCell>{index + 1}</TableCell>
+          <TableCell>{item.name}</TableCell>
+          <TableCell>{item.input_type}</TableCell>
+          <TableCell>{item.input_values}</TableCell>
+          <TableCell>{item.status}</TableCell>
+          <TableCell>
+            <IconButton onClick={() => handleEditClick(item)}>
+              <EditIcon sx={{ color: "blue" }} />
+            </IconButton>
+            <IconButton onClick={() => handleDelete(item.id)} title="Delete">
+              <DeleteIcon sx={{ color: "red" }} />
+            </IconButton>
+          </TableCell>
+        </TableRow>
+      ))}
+    </TableBody>
+  </Table>
+</TableContainer>
+
+<Box marginTop={2}>
+  <Button onClick={() => setIsViewPage(false)} variant="outlined" color="primary">
+    Back to List
   </Button>
-  <Button
-    variant="contained"
-    color="info"
-    onClick={handleAddRow}
-    startIcon={<AddIcon />}
-    style={{ marginLeft: "10px" }} // Add space between the buttons
-  >
-    New
-  </Button>
-
-        </Box>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Attribute Name</TableCell>
-              <TableCell>Input Type</TableCell>
-              <TableCell>Values</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Action</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {newAttributes.map((attr, index) => (
-              <TableRow key={index}>
-                <TableCell>
-                  <TextField
-                    fullWidth
-                    placeholder="Attribute Name"
-                    value={attr.name}
-                    onChange={(e) =>
-                      setNewAttributes(
-                        newAttributes.map((item, i) =>
-                          i === index ? { ...item, name: e.target.value } : item
-                        )
-                      )
-                    }
-                  />
-                </TableCell>
-                <TableCell>
-                  <FormControl fullWidth>
-                    <InputLabel>Input Type</InputLabel>
-                    <Select
-                      value={attr.input_type}
-                      onChange={(e) =>
-                        setNewAttributes(
-                          newAttributes.map((item, i) =>
-                            i === index
-                              ? { ...item, input_type: e.target.value }
-                              : item
-                          )
-                        )
-                      }
-                    >
-                      <MenuItem value="Dropdown">Dropdown</MenuItem>
-                      <MenuItem value="Radio button">Radio button</MenuItem>
-                      <MenuItem value="Text box">Text box</MenuItem>
-                      <MenuItem value="Date picker">Date picker</MenuItem>
-                      <MenuItem value="Time picker">Time picker</MenuItem>
-                    </Select>
-                  </FormControl>
-                </TableCell>
-                <TableCell>
-                  <TextField
-                    fullWidth
-                    placeholder="Enter Values"
-                    value={attr.input_values}
-                    onChange={(e) =>
-                      setNewAttributes(
-                        newAttributes.map((item, i) =>
-                          i === index
-                            ? { ...item, input_values: e.target.value }
-                            : item
-                        )
-                      )
-                    }
-                  />
-                </TableCell>
-
-                {/* Status */}
-                <TableCell>
-                  <FormControl fullWidth>
-                    <InputLabel>Status</InputLabel>
-                    <Select
-                      value={attr.status}
-                      onChange={(e) =>
-                        setNewAttributes(
-                          newAttributes.map((item, i) =>
-                            i === index
-                              ? { ...item, status: e.target.value }
-                              : item
-                          )
-                        )
-                      }
-                    >
-                      <MenuItem value="1">Active</MenuItem>
-                      <MenuItem value="2">Inactive</MenuItem>
-                    </Select>
-                  </FormControl>
-                </TableCell>
-
-                {/* Action */}
-                <TableCell>
-                  <IconButton onClick={() => handleDeleteRow(index)}>
-                    <DeleteIcon sx={{ color: "red" }} />
-                  </IconButton>
-                 
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Box>
-      <TableContainer component={Paper} style={{ marginTop: 20 }}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell><strong>SL NO</strong></TableCell>
-              <TableCell align="left"><strong>ATTRIBUTE NAME</strong></TableCell>
-              <TableCell align="left"><strong>INPUT TYPE</strong></TableCell>
-              <TableCell align="left"><strong>VALUES</strong></TableCell>
-              <TableCell align="left"><strong>STATUS</strong></TableCell>
-              <TableCell align="left"><strong>Action</strong></TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {viewData.map((item, index) => (
-              <TableRow key={index}>
-                <TableCell>{index + 1}</TableCell>
-                <TableCell>{item.name}</TableCell>
-                <TableCell>{item.input_type}</TableCell>
-                <TableCell>{item.input_values}</TableCell>
-                <TableCell>{item.status}</TableCell>
-                <TableCell>
-                  <IconButton onClick={() => handleEditClick(item)}>
-                    <EditIcon sx={{ color: "blue" }} />
-                  </IconButton>
-                  
-                  <IconButton onClick={() => handleDelete(item.id)} title="Delete">
-                  <DeleteIcon sx={{ color: "red" }} />
-                </IconButton>
-
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      <Box marginTop={2}>
-        <Button onClick={() => setIsViewPage(false)} variant="outlined" color="primary">
-          Back to List
-        </Button>
-      </Box>
+</Box>
     </div>
   );
 
 
-  const renderListView = () => (
-    <div>
-      <Box display="flex" justifyContent="space-between" padding={2} bgcolor="#f5f5f5" boxShadow={1}>
-        <Typography variant="h4">Attribute List</Typography>
-      </Box>
-      <TableContainer component={Paper} style={{ marginTop: 20 }}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell><strong>SL NO</strong></TableCell>
-              <TableCell align="left"><strong>Category</strong></TableCell>
-              <TableCell align="center"><strong>ACTIONS</strong></TableCell>
+const renderListView = () => (
+  <div>
+    <Box display="flex" justifyContent="space-between" padding={2} bgcolor="#f5f5f5" boxShadow={1}>
+      <Typography variant="h4">Attribute List</Typography>
+    </Box>
+    <TableContainer component={Paper} style={{ marginTop: 20 }}>
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell><strong>SL NO</strong></TableCell>
+            <TableCell align="left"><strong>Category</strong></TableCell>
+            <TableCell align="center"><strong>ACTIONS</strong></TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {rows.map((row, index) => (
+            <TableRow key={index}>
+              <TableCell>{index + 1}</TableCell>
+              <TableCell>{row.name}</TableCell>
+              <TableCell align="center">
+                <Button variant="outlined" color="primary" onClick={() => handleViewClick(row.id)}>
+                  View
+                </Button>
+
+              </TableCell>
             </TableRow>
-          </TableHead>
-          <TableBody>
-            {rows.map((row, index) => (
-              <TableRow key={index}>
-                <TableCell>{index + 1}</TableCell>
-                <TableCell>{row.name}</TableCell>
-                <TableCell align="center">
-                  <Button variant="outlined" color="primary" onClick={() => handleViewClick(row.id)}>
-                    View
-                  </Button>
-
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </div>
-  );
-  
- {/* Snackbar remains unchanged */}
- <Snackbar
- open={openSnackbar}
- autoHideDuration={3000}
- onClose={handleCloseSnackbar}
- message={snackbarMessage}
- anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-/>
-
-{/* Snackbar for Notifications */}
-<Snackbar
-  open={openSnackbar}
-  autoHideDuration={6000}
-  onClose={handleCloseSnackbar}
->
-  <MuiAlert
-    elevation={6}
-    variant="filled"
-    onClose={handleCloseSnackbar}
-    severity="success"
-  >
-    {message}
-  </MuiAlert>
-</Snackbar>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  </div>
+);
 
 
   return loading ? <CircularProgress /> : (
@@ -631,7 +496,4 @@ const handleEditSave = async () => {
  
 };
 export default AttributePage;
-
-
-
 
